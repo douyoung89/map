@@ -1,0 +1,828 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>강릉 중앙동 카페 & 먹거리 지도</title>
+  <link rel="preconnect" href="https://unpkg.com" />
+  <script type="text/javascript" src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=8477ca5a1ad6eed84cc4afcf3fb7e68f"></script>
+  <style>
+    :root {
+      --ink: #1f241c;
+      --muted: #6b735f;
+      --paper: #fff9e8;
+      --leaf: #1f7a5b;
+      --leaf-soft: #e7f3dc;
+      --berry: #e95f59;
+      --sun: #ffc857;
+      --sky: #8bd3dd;
+      --panel: #fffef8;
+      --line: rgba(61, 68, 48, 0.16);
+      --shadow: 0 18px 44px rgba(48, 39, 24, 0.2);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      height: 100%;
+    }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at 12% 8%, rgba(255, 200, 87, 0.42), transparent 22%),
+        radial-gradient(circle at 90% 4%, rgba(139, 211, 221, 0.36), transparent 24%),
+        linear-gradient(180deg, #fff7dc 0%, #f7f1d8 100%);
+      letter-spacing: 0;
+      overflow: hidden;
+    }
+
+    .app {
+      min-height: 100%;
+      display: grid;
+      grid-template-rows: auto 1fr;
+    }
+
+    header {
+      position: relative;
+      z-index: 800;
+      padding: max(14px, env(safe-area-inset-top)) 14px 10px;
+      background:
+        radial-gradient(circle at 8% 18%, rgba(255, 200, 87, 0.24), transparent 24%),
+        radial-gradient(circle at 92% 10%, rgba(139, 211, 221, 0.22), transparent 28%),
+        rgba(255, 254, 248, 0.94);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--line);
+    }
+
+    header::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: -9px;
+      height: 18px;
+      background:
+        radial-gradient(circle at 18px 0, transparent 17px, rgba(255,254,248,.94) 18px) 0 0 / 36px 18px repeat-x;
+      pointer-events: none;
+    }
+
+    .topline {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: var(--leaf-soft);
+      color: #176346;
+      font-size: 12px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .badge:first-child::before {
+      content: "✦";
+      color: #f2a33b;
+    }
+
+    h1 {
+      margin: 8px 0 0;
+      font-size: clamp(25px, 7vw, 38px);
+      line-height: 1.04;
+      text-shadow: 0 2px 0 #fff2bc;
+    }
+
+    .subtitle {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .filters {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 11px 0 0;
+      scrollbar-width: none;
+    }
+
+    .filters::-webkit-scrollbar { display: none; }
+
+    button {
+      min-height: 38px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #fffdf4;
+      color: var(--ink);
+      padding: 8px 13px;
+      font: inherit;
+      font-size: 13px;
+      font-weight: 900;
+      cursor: pointer;
+      white-space: nowrap;
+      box-shadow: 0 4px 10px rgba(42, 33, 15, 0.07);
+    }
+
+    button.active {
+      border-color: #166747;
+      background: linear-gradient(180deg, #2c966e, #1f7a5b);
+      color: #fff;
+    }
+
+    .map-stage {
+      position: relative;
+      min-height: 0;
+    }
+
+    #map {
+      width: 100%;
+      height: 100%;
+      min-height: 0;
+      background:
+        radial-gradient(circle at 50% 45%, rgba(255, 250, 222, 0.8), transparent 35%),
+        linear-gradient(180deg, #d9f0cf, #f7edc6);
+    }
+
+
+
+    .storybook-label {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 72px;
+      padding: 6px 10px;
+      border: 2px solid #fff;
+      border-radius: 999px;
+      background: linear-gradient(180deg, #ffe88f, #f7b84b);
+      color: #5c3d08;
+      font-size: 12px;
+      font-weight: 1000;
+      box-shadow: 0 8px 18px rgba(67, 48, 19, 0.18);
+      text-shadow: 0 1px rgba(255, 255, 255, 0.65);
+      white-space: nowrap;
+    }
+
+    .storybook-label.green {
+      background: linear-gradient(180deg, #d9f5b6, #7cc983);
+      color: #174f31;
+    }
+
+    .storybook-label.blue {
+      background: linear-gradient(180deg, #c8f2ff, #70c9dc);
+      color: #15556a;
+    }
+
+    .landmark-card {
+      width: 86px;
+      min-height: 64px;
+      display: grid;
+      place-items: center;
+      gap: 2px;
+      padding: 7px 8px;
+      border: 3px solid #fffaf0;
+      border-radius: 24px 24px 20px 20px;
+      background:
+        radial-gradient(circle at 20% 18%, rgba(255,255,255,.9), transparent 18%),
+        linear-gradient(180deg, #ffe680 0%, #f5b94f 100%);
+      color: #5a3a07;
+      font-size: 12px;
+      font-weight: 1000;
+      line-height: 1.08;
+      text-align: center;
+      box-shadow: 0 12px 26px rgba(78, 57, 22, 0.22);
+      transform: rotate(-2deg);
+    }
+
+    .landmark-card .icon {
+      display: block;
+      font-size: 24px;
+      line-height: 1;
+      filter: drop-shadow(0 2px rgba(255,255,255,.55));
+    }
+
+    .landmark-card.market {
+      background: linear-gradient(180deg, #ffcf82, #ec7655);
+      color: #fff;
+    }
+
+    .landmark-card.river {
+      background: linear-gradient(180deg, #c9f7ff, #67cadd);
+      color: #11556a;
+    }
+
+    .landmark-card.park {
+      background: linear-gradient(180deg, #d8f4a2, #72bf78);
+      color: #174b2e;
+    }
+
+    .detail-building {
+      width: 30px;
+      height: 28px;
+      position: relative;
+      border: 2px solid #fff8e8;
+      border-radius: 7px 7px 5px 5px;
+      background: linear-gradient(180deg, #ffe9ae, #f2a95c);
+      box-shadow: 0 7px 14px rgba(63, 47, 24, 0.2);
+    }
+
+    .detail-building::before {
+      content: "";
+      position: absolute;
+      left: -3px;
+      right: -3px;
+      top: -9px;
+      height: 12px;
+      border: 2px solid #fff8e8;
+      border-bottom: 0;
+      border-radius: 12px 12px 4px 4px;
+      background: repeating-linear-gradient(90deg, #e85f55 0 5px, #fff4cf 5px 10px);
+      transform: skewX(-8deg);
+    }
+
+    .detail-building::after {
+      content: "";
+      position: absolute;
+      left: 7px;
+      bottom: 3px;
+      width: 6px;
+      height: 9px;
+      border-radius: 3px 3px 1px 1px;
+      background: #7a5830;
+      box-shadow: 10px -4px 0 -1px #fff6d2;
+    }
+
+    .detail-building.food {
+      background: linear-gradient(180deg, #ffc0a8, #e86852);
+    }
+
+    .detail-building.food::before {
+      background: repeating-linear-gradient(90deg, #2f936e 0 5px, #fff4cf 5px 10px);
+    }
+
+    .detail-tree {
+      width: 24px;
+      height: 28px;
+      position: relative;
+    }
+
+    .detail-tree::before {
+      content: "";
+      position: absolute;
+      left: 4px;
+      top: 0;
+      width: 18px;
+      height: 18px;
+      border: 2px solid #fff8e8;
+      border-radius: 50%;
+      background: linear-gradient(180deg, #a8df7a, #4caa67);
+      box-shadow: -8px 6px 0 -2px #7bc876, 7px 7px 0 -3px #6abd72;
+    }
+
+    .detail-tree::after {
+      content: "";
+      position: absolute;
+      left: 11px;
+      bottom: 0;
+      width: 5px;
+      height: 12px;
+      border-radius: 4px;
+      background: #8d613b;
+    }
+
+    .trail-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 5px 8px;
+      border: 2px solid #fff8e8;
+      border-radius: 999px;
+      background: linear-gradient(180deg, #fff4a8, #ffbc56);
+      color: #6b4407;
+      font-size: 11px;
+      font-weight: 1000;
+      box-shadow: 0 8px 18px rgba(74, 52, 18, 0.18);
+      white-space: nowrap;
+    }
+
+    .zoom-tip {
+      position: absolute;
+      left: 14px;
+      top: 12px;
+      z-index: 710;
+      max-width: 245px;
+      padding: 8px 11px;
+      border: 1px solid rgba(255,255,255,.75);
+      border-radius: 16px;
+      background: rgba(255, 254, 248, 0.9);
+      color: #51604f;
+      font-size: 12px;
+      font-weight: 800;
+      box-shadow: 0 10px 26px rgba(45, 38, 25, 0.14);
+      backdrop-filter: blur(12px);
+      pointer-events: none;
+    }
+
+    .map-stage::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: 410;
+      pointer-events: none;
+      background:
+        linear-gradient(180deg, rgba(255, 249, 232, 0.38), transparent 18%),
+        radial-gradient(circle at 8% 92%, rgba(255, 200, 87, 0.28), transparent 28%),
+        radial-gradient(circle at 88% 82%, rgba(233, 95, 89, 0.18), transparent 26%),
+        radial-gradient(circle at 48% 42%, rgba(255, 245, 195, 0.22), transparent 38%);
+      mix-blend-mode: multiply;
+    }
+
+    .legend {
+      position: absolute;
+      left: 12px;
+      right: 12px;
+      bottom: calc(116px + env(safe-area-inset-bottom));
+      z-index: 700;
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.7);
+      border-radius: 18px;
+      background: rgba(255, 254, 248, 0.86);
+      backdrop-filter: blur(14px);
+      box-shadow: 0 12px 34px rgba(45, 38, 25, 0.16);
+      scrollbar-width: none;
+    }
+
+    .legend::-webkit-scrollbar { display: none; }
+
+    .legend-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      flex: 0 0 auto;
+      padding: 7px 10px;
+      border-radius: 999px;
+      background: linear-gradient(180deg, #fffdf0, #fff1bd);
+      color: #4b4f38;
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--leaf);
+    }
+
+    .dot.food { background: var(--berry); }
+
+    .bottom-sheet {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 720;
+      padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+      background: linear-gradient(180deg, rgba(255, 249, 232, 0), rgba(255, 249, 232, 0.92) 18%, rgba(255, 249, 232, 0.98));
+      pointer-events: none;
+    }
+
+    .place-rail {
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;
+      padding-bottom: 2px;
+      pointer-events: auto;
+      scrollbar-width: none;
+    }
+
+    .place-rail::-webkit-scrollbar { display: none; }
+
+    .mini-card {
+      flex: 0 0 222px;
+      display: grid;
+      grid-template-columns: 66px 1fr;
+      gap: 10px;
+      align-items: center;
+      border: 1px solid rgba(255,255,255,0.8);
+      border-radius: 20px;
+      background: rgba(255, 254, 248, 0.94);
+      padding: 9px;
+      box-shadow: 0 12px 30px rgba(48, 39, 24, 0.17);
+      cursor: pointer;
+    }
+
+    .mini-card:active {
+      transform: translateY(1px) scale(0.99);
+    }
+
+    .mini-card img {
+      width: 66px;
+      height: 66px;
+      border-radius: 16px;
+      object-fit: cover;
+      background: var(--leaf-soft);
+    }
+
+    .mini-card strong {
+      display: block;
+      font-size: 14px;
+      line-height: 1.15;
+    }
+
+    .mini-card span {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.25;
+    }
+
+    .guide-marker {
+      width: 34px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      border: 3px solid #fff;
+      border-radius: 50% 50% 50% 12px;
+      background: var(--leaf);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 1000;
+      box-shadow: 0 7px 16px rgba(30, 45, 27, 0.28);
+      transform: rotate(-45deg);
+    }
+
+    .guide-marker span {
+      transform: rotate(45deg);
+    }
+
+    .guide-marker.food {
+      background: var(--berry);
+    }
+
+    .place-popup {
+      display: block;
+      width: 238px;
+      overflow: hidden;
+      border: 2px solid #fff;
+      border-radius: 22px;
+      background: var(--panel);
+      color: var(--ink);
+      text-decoration: none;
+      box-shadow: var(--shadow);
+      margin-bottom: 12px;
+    }
+
+    .place-popup img {
+      width: 100%;
+      height: 118px;
+      display: block;
+      object-fit: cover;
+      background: linear-gradient(135deg, #ffe8a8, #b9e5c2);
+    }
+
+    .popup-body {
+      padding: 10px 11px 12px;
+    }
+
+    .popup-kicker {
+      display: inline-flex;
+      margin-bottom: 4px;
+      padding: 3px 7px;
+      border-radius: 999px;
+      background: var(--leaf-soft);
+      color: #176346;
+      font-size: 11px;
+      font-weight: 900;
+    }
+
+    .popup-title {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.15;
+      font-weight: 1000;
+    }
+
+    .popup-desc {
+      margin: 5px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .popup-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-top: 8px;
+    }
+
+    .popup-tags span {
+      padding: 3px 6px;
+      border-radius: 999px;
+      background: #fff2c6;
+      color: #6a5311;
+      font-size: 11px;
+      font-weight: 900;
+    }
+
+    .open-note {
+      margin-top: 9px;
+      color: #d14c43;
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+
+
+    @media (min-width: 820px) {
+      body { overflow: auto; }
+
+      .app {
+        min-height: 100vh;
+        grid-template-rows: auto minmax(680px, 1fr);
+      }
+
+      header {
+        padding-left: 24px;
+        padding-right: 24px;
+      }
+
+      .map-stage {
+        margin: 18px auto;
+        width: min(1180px, calc(100% - 36px));
+        min-height: 680px;
+        border: 10px solid rgba(255, 254, 248, 0.78);
+        border-radius: 34px;
+        overflow: hidden;
+        box-shadow: 0 24px 70px rgba(48, 39, 24, 0.22);
+      }
+
+      #map {
+        min-height: 680px;
+      }
+
+      .bottom-sheet {
+        padding-left: 18px;
+        padding-right: 18px;
+      }
+
+      .legend {
+        left: 18px;
+        right: auto;
+        bottom: 132px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="topline">
+        <span class="badge">GUIDE MAP</span>
+        <span class="badge">강릉 중앙동</span>
+      </div>
+      <h1>카페 & 먹거리 탐험 지도</h1>
+      <p class="subtitle">번호 마커를 누르면 사진과 해시태그가 뜹니다. 뜬 카드를 한 번 더 누르면 네이버 지도로 바로 이동합니다.</p>
+      <div class="filters" aria-label="지도 필터">
+        <button class="filter active" data-filter="all">전체 코스</button>
+        <button class="filter" data-filter="cafe">카페</button>
+        <button class="filter" data-filter="food">먹거리</button>
+        <button id="fitAll">지도 맞춤</button>
+      </div>
+    </header>
+
+    <main class="map-stage">
+      <div id="map" aria-label="강릉 중앙동 지도"></div>
+      <div class="legend" aria-label="범례">
+        <span class="legend-pill"><i class="dot"></i>카페</span>
+        <span class="legend-pill"><i class="dot food"></i>먹거리</span>
+      </div>
+      <section class="bottom-sheet" aria-label="장소 빠른 목록">
+        <div id="placeRail" class="place-rail"></div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const fallbackImage = "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='380' viewBox='0 0 640 380'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' x2='1' y1='0' y2='1'%3E%3Cstop stop-color='%23fff0a6'/%3E%3Cstop offset='.55' stop-color='%23bce4b9'/%3E%3Cstop offset='1' stop-color='%238bd3dd'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='640' height='380' fill='url(%23g)'/%3E%3Ccircle cx='120' cy='110' r='44' fill='%23fff' opacity='.55'/%3E%3Ccircle cx='520' cy='90' r='72' fill='%23fff' opacity='.38'/%3E%3Cpath d='M75 285c92-95 151-98 235-24 73 65 145 50 255-42v161H75z' fill='%231f7a5b' opacity='.28'/%3E%3Ctext x='50%25' y='48%25' text-anchor='middle' font-family='Arial,sans-serif' font-size='40' font-weight='800' fill='%231f241c'%3EGangneung%3C/text%3E%3Ctext x='50%25' y='61%25' text-anchor='middle' font-family='Arial,sans-serif' font-size='24' font-weight='700' fill='%236b735f'%3EGuide Map%3C/text%3E%3C/svg%3E";
+
+    const defaultPlaces = [
+      { id: "p-21674407", kind: "cafe", name: "교동899", address: "강원 강릉시 임영로 223 카페 교동899", lat: 37.7606352, lng: 128.8921346, link: "https://naver.me/G8s9I0MQ", image: "https://search.pstatic.net/common/?autoRotate=true&quality=100&type=f640_380&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20230602_275%2F1685676668410oy0I5_JPEG%2F359BD10C-06EE-4AC1-86C5-7D6B3E31F179.jpeg", desc: "한옥 분위기와 여름 빙수가 잘 맞는 교리단길 카페.", tags: ["#한옥카페", "#빙수추천", "#사진스팟"] },
+      { id: "p-1409628779", kind: "cafe", name: "시만차 림", address: "강원 강릉시 임영로 192 2층", lat: 37.75935, lng: 128.89214, link: "https://naver.me/5HkaJD8H", image: "https://search.pstatic.net/common/?autoRotate=true&quality=100&type=f640_380&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20231118_179%2F1700287613432Bxgfk_JPEG%2F001.jpg", desc: "커피보다 차가 끌리는 조용한 시간에 어울리는 공간.", tags: ["#티카페", "#차한잔", "#차분한휴식"] },
+      { id: "p-13320528", kind: "cafe", name: "명주배롱", address: "강원 강릉시 경강로2046번길 10 명주배롱", lat: 37.7509353, lng: 128.8929544, link: "https://naver.me/G2Ew6A0u", image: "https://search.pstatic.net/common/?autoRotate=true&quality=100&type=f640_380&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20190905_119%2F1567665638551jRfu6_JPEG%2FbttZdWIalCXBztxpCZA-Ghdj.jpg", desc: "명주동 골목 산책 중 들르기 좋은 아기자기한 감성 카페.", tags: ["#명주동골목", "#감성카페", "#조용한쉼"] },
+      { id: "p-1325516945", kind: "cafe", name: "카페 오뉴월", address: "강원 강릉시 남문길 9 1층", lat: 37.7502374, lng: 128.8924763, link: "https://naver.me/GXApK5mW", image: "https://search.pstatic.net/common/?autoRotate=true&quality=100&type=f640_380&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20240518_118%2F1716019350268KyPc4_JPEG%2F1.jpg", desc: "남문동 산책 코스에 넣기 좋은 디저트 카페.", tags: ["#남문동", "#디저트", "#감각적인공간"] },
+      { id: "p-1368555459", kind: "cafe", name: "범스뱅", address: "강원 강릉시 임영로116번길 3-1 2층 범스뱅", lat: 37.7520382, lng: 128.8944273, link: "https://naver.me/FTXYZ6Gu", image: "https://search.pstatic.net/common/?autoRotate=true&quality=100&type=f640_380&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20240410_87%2F1712712947571DX83w_JPEG%2F20231105_144836.jpg", desc: "중앙시장과 가까워 식사 전후로 들르기 좋은 2층 카페.", tags: ["#중앙시장근처", "#2층카페", "#시내카페"] },
+      { id: "p-15294717", kind: "cafe", name: "오솔길", address: "강원 강릉시 신대학길 18 2층", lat: 37.7532602, lng: 128.8955378, link: "https://naver.me/FZ2iAfba", image: "https://search.pstatic.net/common/?autoRotate=true&quality=100&type=f640_380&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20260129_231%2F1769665833299647FS_JPEG%2FIMG_2226.jpeg", desc: "대학로 근처에서 쉬어가기 좋은 아늑한 카페.", tags: ["#아늑한공간", "#대학로", "#달콤한휴식"] },
+      { id: "p-1416423318", kind: "cafe", name: "푸에르타", address: "강원 강릉시 중앙시장2길 12 푸에르타", lat: 37.7527639, lng: 128.8981448, link: "https://naver.me/xtgpfos1", image: "https://search.pstatic.net/common/?autoRotate=true&quality=100&type=f640_380&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20240424_257%2F1713940223166KbV14_JPEG%2FIMG_2675.jpeg", desc: "시장 동선 바로 옆, 시그니처 메뉴를 고르기 좋은 카페.", tags: ["#시장옆카페", "#시그니처", "#동선좋음"] },
+      { id: "p-1921017062", kind: "cafe", name: "카페시로울", address: "강원 강릉시 대학길 12 2층 카페시로울", lat: 37.7539234, lng: 128.896392, link: "https://naver.me/GG7MG2v3", image: "https://search.pstatic.net/common/?autoRotate=true&quality=100&type=f640_380&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20250126_42%2F1737859811846fcFil_JPEG%2FIMG_1950.jpeg", desc: "금학동 대학길에서 잠깐 모이기 좋은 2층 카페.", tags: ["#대학길", "#모임좋음", "#시내감성"] },
+      { id: "p-1277825412", kind: "cafe", name: "바스투체어", address: "강원 강릉시 경강로2115번길 14 1층", lat: 37.7565623, lng: 128.8972578, link: "https://naver.me/x8tJi2qg", image: "https://search.pstatic.net/common/?autoRotate=true&quality=100&type=f640_380&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20260425_218%2F1777049222028nFgwj_JPEG%2F%25B9%25D9%25BD%25BA%25C5%25F5_%25B0%25F8%25B0%25A3_%25BB%25E7%25C1%25F8_1.JPG", desc: "늦은 시간 산책 뒤에도 후보에 넣기 좋은 카페.", tags: ["#늦은카페", "#골목카페", "#밤산책"] },
+      { id: "p-1569323095", kind: "cafe", name: "비사이드그라운드", address: "강원 강릉시 용지로 136 1, 2층", lat: 37.7588576, lng: 128.9057385, link: "https://naver.me/FZ27yPaG", image: "https://search.pstatic.net/common/?autoRotate=true&quality=100&type=f640_380&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20260413_33%2F1776088002367Mu8vP_JPEG%2F6FB406A6-9C0E-41D2-B28C-54F4E4E00D65.jpeg", desc: "강릉역 쪽으로 빠질 때 들르기 좋은 세련된 카페.", tags: ["#강릉역근처", "#플랫화이트", "#감각적인공간"] },
+      { id: "food-market", kind: "food", name: "강릉 중앙시장 먹거리 골목", address: "강원 강릉시 금성로 21 일대", lat: 37.75272, lng: 128.89732, link: "https://map.naver.com/p/search/%EA%B0%95%EB%A6%89%20%EC%A4%91%EC%95%99%EC%8B%9C%EC%9E%A5", image: "", desc: "닭강정, 오징어순대, 육쪽마늘빵, 커피콩빵처럼 나눠 먹기 좋은 메뉴가 몰려 있는 핵심 구역.", tags: ["#닭강정", "#오징어순대", "#시장간식"] },
+      { id: "food-night", kind: "food", name: "월화거리 야시장 권역", address: "강릉 월화거리 일대", lat: 37.75416, lng: 128.8982, link: "https://map.naver.com/p/search/%EA%B0%95%EB%A6%89%20%EC%9B%94%ED%99%94%EA%B1%B0%EB%A6%AC", image: "", desc: "여름 저녁 산책 동선으로 좋고, 야시장 운영일에는 길거리 음식 선택지가 늘어납니다.", tags: ["#야시장", "#저녁산책", "#길거리음식"] },
+      { id: "food-bread", kind: "food", name: "중화짬뽕빵 & 시장 빵지순례", address: "강릉 중앙시장, 월화거리 주변", lat: 37.75317, lng: 128.89782, link: "https://map.naver.com/p/search/%EA%B0%95%EB%A6%89%20%EC%A4%91%ED%99%94%EC%A7%AC%EB%BD%95%EB%B9%B5", image: "", desc: "매콤한 짬뽕빵, 마늘빵, 감자빵류를 포장해서 조별 간식으로 나누기 좋은 코스.", tags: ["#짬뽕빵", "#포장간식", "#빵지순례"] },
+      { id: "food-college", kind: "food", name: "금학동 대학로 식당가", address: "강릉시 대학길, 신대학길 일대", lat: 37.75387, lng: 128.89605, link: "https://map.naver.com/p/search/%EA%B0%95%EB%A6%89%20%EA%B8%88%ED%95%99%EB%8F%99%20%EB%A7%9B%EC%A7%91", image: "", desc: "카페시로울, 오솔길과 가까운 식사 후보 권역. 조별 자유식 동선으로 묶기 좋습니다.", tags: ["#조별식사", "#대학로", "#중앙동동선"] }
+    ];
+
+    let currentFilter = "all";
+    const defaultById = new Map(defaultPlaces.map(place => [place.id, place]));
+    const places = loadPlaces();
+    var mapContainer = document.getElementById('map'),
+        mapOption = { 
+            center: new kakao.maps.LatLng(37.7549, 128.8972),
+            level: 4
+        };
+    var map = new kakao.maps.Map(mapContainer, mapOption);
+
+    var popupOverlay = new kakao.maps.CustomOverlay({
+      map: null,
+      clickable: true,
+      xAnchor: 0.5,
+      yAnchor: 1.1,
+      zIndex: 3
+    });
+
+    kakao.maps.event.addListener(map, 'click', function() {
+      popupOverlay.setMap(null);
+    });
+
+    const markerOverlays = [];
+    const markers = new Map();
+    const rail = document.querySelector("#placeRail");
+
+    function decodeData(value) {
+      const base64 = value.replace(/-/g, "+").replace(/_/g, "/");
+      const padded = base64.padEnd(Math.ceil(base64.length / 4) * 4, "=");
+      return JSON.parse(decodeURIComponent(escape(atob(padded))));
+    }
+
+    function loadPlaces() {
+      const hashMatch = location.hash.match(/data=([^&]+)/);
+      if (!hashMatch) return normalizePlaces(defaultPlaces);
+      try {
+        return normalizePlaces(decodeData(hashMatch[1]));
+      } catch (error) {
+        alert("공유 링크 데이터를 읽지 못했습니다. 기본 지도로 표시합니다.");
+        return normalizePlaces(defaultPlaces);
+      }
+    }
+
+    function normalizePlaces(list) {
+      return list.map((place, index) => ({
+        id: String(place.id || `p-${index}`),
+        kind: place.kind === "food" ? "food" : "cafe",
+        name: String(place.name || "이름 없음"),
+        address: String(place.address || ""),
+        lat: Number(place.lat) || 37.7549,
+        lng: Number(place.lng) || 128.8972,
+        link: String(place.link || ""),
+        image: String(place.image || defaultById.get(String(place.id))?.image || ""),
+        desc: String(place.desc || ""),
+        tags: Array.isArray(place.tags) ? place.tags.map(String) : []
+      }));
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, char => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#039;"
+      }[char]));
+    }
+
+    function visiblePlaces() {
+      return places.filter(place => currentFilter === "all" || place.kind === currentFilter);
+    }
+
+    function imageOf(place) {
+      return place.image || fallbackImage;
+    }
+
+    function linkOf(place) {
+      return place.link || `https://map.naver.com/p/search/${encodeURIComponent(place.name)}`;
+    }
+
+    function popupFor(place) {
+      return `
+        <a class="place-popup" href="${escapeHtml(linkOf(place))}" target="_blank" rel="noreferrer" aria-label="${escapeHtml(place.name)} 네이버 지도 열기">
+          <img src="${escapeHtml(imageOf(place))}" alt="" loading="lazy" onerror="this.src='${fallbackImage}'" />
+          <div class="popup-body">
+            <span class="popup-kicker">${place.kind === "food" ? "먹거리" : "카페"}</span>
+            <h2 class="popup-title">${escapeHtml(place.name)}</h2>
+            <p class="popup-desc">${escapeHtml(place.desc || place.address)}</p>
+            <div class="popup-tags">${place.tags.map(tag => `<span>${escapeHtml(tag)}</span>`).join("")}</div>
+            <div class="open-note">카드 터치해서 네이버 지도 열기</div>
+          </div>
+        </a>
+      `;
+    }
+
+    function openPopupForPlace(place) {
+      var popupContent = document.createElement('div');
+      popupContent.innerHTML = popupFor(place);
+      
+      popupOverlay.setContent(popupContent);
+      var position = new kakao.maps.LatLng(place.lat, place.lng);
+      popupOverlay.setPosition(position);
+      popupOverlay.setMap(map);
+      
+      map.panTo(position);
+    }
+
+    function render() {
+      markerOverlays.forEach(overlay => overlay.setMap(null));
+      markerOverlays.length = 0;
+      markers.clear();
+      rail.innerHTML = "";
+      popupOverlay.setMap(null);
+
+      visiblePlaces().forEach((place, index) => {
+        var content = document.createElement('div');
+        content.className = `guide-marker ${place.kind === "food" ? "food" : ""}`;
+        content.innerHTML = `<span>${index + 1}</span>`;
+
+        var position = new kakao.maps.LatLng(place.lat, place.lng);
+        var customOverlay = new kakao.maps.CustomOverlay({
+            position: position,
+            content: content,
+            xAnchor: 0.5,
+            yAnchor: 1.0
+        });
+        
+        customOverlay.setMap(map);
+        markerOverlays.push(customOverlay);
+        markers.set(place.id, { overlay: customOverlay, place: place });
+
+        content.addEventListener('click', function(e) {
+            e.stopPropagation();
+            openPopupForPlace(place);
+        });
+        content.addEventListener('touchend', function(e) {
+            e.stopPropagation();
+            e.preventDefault();
+            openPopupForPlace(place);
+        });
+
+        rail.appendChild(miniCard(place, index));
+      });
+    }
+
+    function miniCard(place, index) {
+      const card = document.createElement("button");
+      card.className = "mini-card";
+      card.type = "button";
+      card.innerHTML = `
+        <img src="${escapeHtml(imageOf(place))}" alt="" loading="lazy" onerror="this.src='${fallbackImage}'" />
+        <span>
+          <strong>${index + 1}. ${escapeHtml(place.name)}</strong>
+          <span>${escapeHtml(place.tags.slice(0, 2).join(" "))}</span>
+        </span>
+      `;
+      card.addEventListener("click", () => {
+        map.setLevel(3, { animate: true });
+        openPopupForPlace(place);
+      });
+      return card;
+    }
+
+    function fitVisible() {
+      if (markerOverlays.length === 0) return;
+      var bounds = new kakao.maps.LatLngBounds();
+      markerOverlays.forEach(overlay => {
+        bounds.extend(overlay.getPosition());
+      });
+      map.setBounds(bounds);
+    }
+
+    document.querySelectorAll(".filter").forEach(button => {
+      button.addEventListener("click", () => {
+        document.querySelectorAll(".filter").forEach(item => item.classList.remove("active"));
+        button.classList.add("active");
+        currentFilter = button.dataset.filter;
+        render();
+        fitVisible();
+      });
+    });
+
+    document.querySelector("#fitAll").addEventListener("click", fitVisible);
+
+    render();
+    fitVisible();
+  </script>
+</body>
+</html>

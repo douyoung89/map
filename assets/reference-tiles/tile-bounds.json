@@ -1,0 +1,21 @@
+{
+  "source": "map-reference.html",
+  "description": "Clean marker-free Gangneung Jungang-dong 3x3 reference tiles for AI style transfer.",
+  "fullBounds": {
+    "south": 37.7464,
+    "west": 128.888,
+    "north": 37.7644,
+    "east": 128.9108
+  },
+  "tiles": [
+    { "row": 1, "col": 1, "file": "reference-tile-r1-c1.png", "bounds": { "south": 37.7584, "west": 128.888, "north": 37.7644, "east": 128.8956 } },
+    { "row": 1, "col": 2, "file": "reference-tile-r1-c2.png", "bounds": { "south": 37.7584, "west": 128.8956, "north": 37.7644, "east": 128.9032 } },
+    { "row": 1, "col": 3, "file": "reference-tile-r1-c3.png", "bounds": { "south": 37.7584, "west": 128.9032, "north": 37.7644, "east": 128.9108 } },
+    { "row": 2, "col": 1, "file": "reference-tile-r2-c1.png", "bounds": { "south": 37.7524, "west": 128.888, "north": 37.7584, "east": 128.8956 } },
+    { "row": 2, "col": 2, "file": "reference-tile-r2-c2.png", "bounds": { "south": 37.7524, "west": 128.8956, "north": 37.7584, "east": 128.9032 } },
+    { "row": 2, "col": 3, "file": "reference-tile-r2-c3.png", "bounds": { "south": 37.7524, "west": 128.9032, "north": 37.7584, "east": 128.9108 } },
+    { "row": 3, "col": 1, "file": "reference-tile-r3-c1.png", "bounds": { "south": 37.7464, "west": 128.888, "north": 37.7524, "east": 128.8956 } },
+    { "row": 3, "col": 2, "file": "reference-tile-r3-c2.png", "bounds": { "south": 37.7464, "west": 128.8956, "north": 37.7524, "east": 128.9032 } },
+    { "row": 3, "col": 3, "file": "reference-tile-r3-c3.png", "bounds": { "south": 37.7464, "west": 128.9032, "north": 37.7524, "east": 128.9108 } }
+  ]
+}
