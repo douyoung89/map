@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>강릉 중앙동 카페 & 먹거리 지도</title>
   <link rel="preconnect" href="https://unpkg.com" />
-  <script type="text/javascript" src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=8477ca5a1ad6eed84cc4afcf3fb7e68f"></script>
+  <script type="text/javascript" src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=8477ca5a1ad6eed84cc4afcf3fb7e68f&autoload=false"></script>
   <style>
     :root {
       --ink: #1f241c;
@@ -145,12 +145,76 @@
     }
 
     #map {
+      position: relative;
       width: 100%;
       height: 100%;
       min-height: 0;
+      overflow: hidden;
       background:
         radial-gradient(circle at 50% 45%, rgba(255, 250, 222, 0.8), transparent 35%),
         linear-gradient(180deg, #d9f0cf, #f7edc6);
+    }
+
+    .fallback-map {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      background:
+        linear-gradient(180deg, rgba(255, 249, 232, 0.14), rgba(255, 249, 232, 0.34)),
+        url("assets/fairytale-map-aligned.png") center / cover no-repeat,
+        linear-gradient(135deg, #d9f0cf, #fff1bd);
+    }
+
+    .fallback-map::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at 16% 20%, rgba(255, 255, 255, 0.42), transparent 20%),
+        radial-gradient(circle at 78% 18%, rgba(139, 211, 221, 0.22), transparent 24%),
+        linear-gradient(90deg, rgba(255, 249, 232, 0.18), transparent 45%, rgba(255, 249, 232, 0.2));
+      pointer-events: none;
+    }
+
+    .map-status {
+      position: absolute;
+      left: 14px;
+      top: 12px;
+      z-index: 610;
+      max-width: min(310px, calc(100% - 28px));
+      margin: 0;
+      padding: 8px 11px;
+      border: 1px solid rgba(255, 255, 255, 0.72);
+      border-radius: 16px;
+      background: rgba(255, 254, 248, 0.9);
+      color: #51604f;
+      font-size: 12px;
+      font-weight: 800;
+      box-shadow: 0 10px 26px rgba(45, 38, 25, 0.14);
+    }
+
+    .fallback-marker {
+      position: absolute;
+      z-index: 630;
+      min-height: 34px;
+      padding: 0;
+      transform: translate(-50%, -100%) rotate(-45deg);
+    }
+
+    .fallback-popup-wrap {
+      position: absolute;
+      z-index: 760;
+      width: min(278px, calc(100% - 28px));
+      max-width: calc(100% - 28px);
+      transform: translate(-50%, calc(-100% - 20px));
+    }
+
+    .fallback-popup-wrap.below {
+      transform: translate(-50%, 20px);
+    }
+
+    .fallback-popup-wrap .place-popup {
+      margin-bottom: 0;
     }
 
 
@@ -475,13 +539,14 @@
 
     .place-popup {
       display: block;
-      width: 238px;
+      width: min(278px, calc(100vw - 32px));
       overflow: hidden;
       border: 2px solid #fff;
       border-radius: 22px;
       background: var(--panel);
       color: var(--ink);
       text-decoration: none;
+      white-space: normal;
       box-shadow: var(--shadow);
       margin-bottom: 12px;
     }
@@ -496,6 +561,7 @@
 
     .popup-body {
       padding: 10px 11px 12px;
+      white-space: normal;
     }
 
     .popup-kicker {
@@ -514,6 +580,9 @@
       font-size: 18px;
       line-height: 1.15;
       font-weight: 1000;
+      white-space: normal;
+      word-break: keep-all;
+      overflow-wrap: anywhere;
     }
 
     .popup-desc {
@@ -521,6 +590,9 @@
       color: var(--muted);
       font-size: 12px;
       line-height: 1.35;
+      white-space: normal;
+      word-break: keep-all;
+      overflow-wrap: anywhere;
     }
 
     .popup-tags {
@@ -544,6 +616,7 @@
       color: #d14c43;
       font-size: 12px;
       font-weight: 900;
+      white-space: normal;
     }
 
 
@@ -601,7 +674,7 @@
         <button class="filter active" data-filter="all">전체 코스</button>
         <button class="filter" data-filter="cafe">카페</button>
         <button class="filter" data-filter="food">먹거리</button>
-        <button id="fitAll">지도 맞춤</button>
+        <button id="fitAll">원위치</button>
       </div>
     </header>
 
@@ -632,36 +705,35 @@
       { id: "p-1277825412", kind: "cafe", name: "바스투체어", address: "강원 강릉시 경강로2115번길 14 1층", lat: 37.7565623, lng: 128.8972578, link: "https://naver.me/x8tJi2qg", image: "https://search.pstatic.net/common/?autoRotate=true&quality=100&type=f640_380&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20260425_218%2F1777049222028nFgwj_JPEG%2F%25B9%25D9%25BD%25BA%25C5%25F5_%25B0%25F8%25B0%25A3_%25BB%25E7%25C1%25F8_1.JPG", desc: "늦은 시간 산책 뒤에도 후보에 넣기 좋은 카페.", tags: ["#늦은카페", "#골목카페", "#밤산책"] },
       { id: "p-1569323095", kind: "cafe", name: "비사이드그라운드", address: "강원 강릉시 용지로 136 1, 2층", lat: 37.7588576, lng: 128.9057385, link: "https://naver.me/FZ27yPaG", image: "https://search.pstatic.net/common/?autoRotate=true&quality=100&type=f640_380&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20260413_33%2F1776088002367Mu8vP_JPEG%2F6FB406A6-9C0E-41D2-B28C-54F4E4E00D65.jpeg", desc: "강릉역 쪽으로 빠질 때 들르기 좋은 세련된 카페.", tags: ["#강릉역근처", "#플랫화이트", "#감각적인공간"] },
       { id: "food-market", kind: "food", name: "강릉 중앙시장 먹거리 골목", address: "강원 강릉시 금성로 21 일대", lat: 37.75272, lng: 128.89732, link: "https://map.naver.com/p/search/%EA%B0%95%EB%A6%89%20%EC%A4%91%EC%95%99%EC%8B%9C%EC%9E%A5", image: "", desc: "닭강정, 오징어순대, 육쪽마늘빵, 커피콩빵처럼 나눠 먹기 좋은 메뉴가 몰려 있는 핵심 구역.", tags: ["#닭강정", "#오징어순대", "#시장간식"] },
-      { id: "food-night", kind: "food", name: "월화거리 야시장 권역", address: "강릉 월화거리 일대", lat: 37.75416, lng: 128.8982, link: "https://map.naver.com/p/search/%EA%B0%95%EB%A6%89%20%EC%9B%94%ED%99%94%EA%B1%B0%EB%A6%AC", image: "", desc: "여름 저녁 산책 동선으로 좋고, 야시장 운영일에는 길거리 음식 선택지가 늘어납니다.", tags: ["#야시장", "#저녁산책", "#길거리음식"] },
-      { id: "food-bread", kind: "food", name: "중화짬뽕빵 & 시장 빵지순례", address: "강릉 중앙시장, 월화거리 주변", lat: 37.75317, lng: 128.89782, link: "https://map.naver.com/p/search/%EA%B0%95%EB%A6%89%20%EC%A4%91%ED%99%94%EC%A7%AC%EB%BD%95%EB%B9%B5", image: "", desc: "매콤한 짬뽕빵, 마늘빵, 감자빵류를 포장해서 조별 간식으로 나누기 좋은 코스.", tags: ["#짬뽕빵", "#포장간식", "#빵지순례"] },
-      { id: "food-college", kind: "food", name: "금학동 대학로 식당가", address: "강릉시 대학길, 신대학길 일대", lat: 37.75387, lng: 128.89605, link: "https://map.naver.com/p/search/%EA%B0%95%EB%A6%89%20%EA%B8%88%ED%95%99%EB%8F%99%20%EB%A7%9B%EC%A7%91", image: "", desc: "카페시로울, 오솔길과 가까운 식사 후보 권역. 조별 자유식 동선으로 묶기 좋습니다.", tags: ["#조별식사", "#대학로", "#중앙동동선"] }
+      { id: "food-2022153598", kind: "food", name: "온정당", address: "강원 강릉시 금성로22번길 8-7 1층", lat: 37.7549763, lng: 128.8980731, link: "https://naver.me/x9BWilnt", image: "https://ldb-phinf.pstatic.net/20260506_149/1778033671908VjG7B_JPEG/1.jpg", desc: "중앙시장 골목과 가까운 한식집. 저녁 식사 후보로 넣기 좋습니다.", tags: ["#한식", "#중앙시장근처", "#저녁식사"] },
+      { id: "food-33920318", kind: "food", name: "여왕개미식당", address: "강원 강릉시 금성로23번길 4 여왕개미식당", lat: 37.7537269, lng: 128.898091, link: "https://naver.me/5chnfI85", image: "https://ldb-phinf.pstatic.net/20250321_175/1742550623945aSjYA_JPEG/2025_03_21_%BF%C0%C8%C4_3_02_Office_Lens.jpg", desc: "중앙시장 가까운 한식집. 시장 동선 중 든든하게 먹기 좋은 선택지입니다.", tags: ["#한식", "#시장근처", "#든든한한끼"] },
+      { id: "food-33082487", kind: "food", name: "육반장 본점", address: "강원 강릉시 토성로 169", lat: 37.756332, lng: 128.8947894, link: "https://naver.me/5UEcwsv3", image: "https://ldb-phinf.pstatic.net/20220817_288/1660743434750leS0a_JPEG/BB35FBBC-555E-45F9-A056-8C7AC99BC31C.jpeg", desc: "토성로 쪽 찌개와 전골 후보. 따뜻한 국물 메뉴가 필요할 때 좋습니다.", tags: ["#찌개전골", "#본점", "#국물요리"] },
+      { id: "food-15293378", kind: "food", name: "금학칼국수", address: "강원 강릉시 대학길 12-6", lat: 37.7544389, lng: 128.89632, link: "https://naver.me/xrSQ8aHc", image: "https://ldb-phinf.pstatic.net/20190622_244/1561129889486yVII5_JPEG/dVwtvSC3PNWFGNaJs-4-gdFx.JPG.jpg", desc: "대학길 골목의 칼국수 맛집. 중앙동 산책 중 점심 후보로 넣기 좋습니다.", tags: ["#칼국수", "#대학길", "#점심추천"] },
+      { id: "food-1611468087", kind: "food", name: "마이마이", address: "강원 강릉시 문화의길8번길 11 1층 마이마이", lat: 37.7554873, lng: 128.8954029, link: "https://naver.me/5CW7lIBl", image: "https://ldb-phinf.pstatic.net/20250709_234/1752047449918wWGc5_JPEG/IMG_1316.jpeg", desc: "문화의길 골목에 있는 중식당. 가볍게 다른 메뉴를 섞고 싶을 때 좋습니다.", tags: ["#중식당", "#문화의길", "#골목맛집"] },
+      { id: "food-15292474", kind: "food", name: "벌집", address: "강원 강릉시 경강로2069번길 15", lat: 37.7544828, lng: 128.8928549, link: "https://naver.me/GZZuMrz8", image: "https://ldb-phinf.pstatic.net/20200421_20/1587474019234Rt96F_JPEG/kf-Wl4Doo5ffSlRWiYlclRWC.jpg", desc: "경강로 골목의 오래된 한식 후보. 강릉식 장칼국수 동선으로 묶기 좋습니다.", tags: ["#한식", "#장칼국수", "#강릉맛집"] },
+      { id: "food-1703054137", kind: "food", name: "장미경양식 강릉중앙시장점", address: "강원 강릉시 금성로22번길 4 1층 장미경양식 강릉중앙시장점", lat: 37.7542216, lng: 128.8979838, link: "https://naver.me/xRhEI7Nf", image: "https://naverbooking-phinf.pstatic.net/20260604_226/1780578712492EvNLl_PNG/image.png", desc: "중앙시장 옆 돈가스와 경양식 후보. 여럿이 무난하게 고르기 좋습니다.", tags: ["#돈가스", "#경양식", "#중앙시장"] },
+      { id: "food-2044631053", kind: "food", name: "공가네감자옹심이 강릉임당점", address: "강원 강릉시 경강로2103번길 16 1층", lat: 37.7564187, lng: 128.8959714, link: "https://naver.me/5YSeY5Ou", image: "https://ldb-phinf.pstatic.net/20260430_172/1777530436222W55dl_PNG/7155.png", desc: "감자옹심이와 한식 메뉴를 넣고 싶을 때 좋은 임당동 식사 후보입니다.", tags: ["#감자옹심이", "#한식", "#임당동"] },
+      { id: "food-15297320", kind: "food", name: "광덕식당 중앙시장점", address: "강원 강릉시 중앙시장길 22-3", lat: 37.7536693, lng: 128.8989663, link: "https://naver.me/GL8ipldC", image: "https://ldb-phinf.pstatic.net/20220519_62/165297163494607feG_PNG/001.png", desc: "중앙시장 안쪽 국밥 후보. 시장 먹거리 코스와 바로 이어집니다.", tags: ["#국밥", "#중앙시장", "#든든한식사"] },
+      { id: "food-31450521", kind: "food", name: "정화식당", address: "강원 강릉시 토성로 193 정화식당", lat: 37.7575841, lng: 128.8968316, link: "https://naver.me/FRLNG1PV", image: "https://ldb-phinf.pstatic.net/20200722_201/1595405090531WDnLM_JPEG/-n3jZA4aY-XlvvSntWEDnZzv.jpg", desc: "토성로 쪽 한식 식당. 중앙동 북쪽 동선에 넣기 좋은 식사 후보입니다.", tags: ["#한식", "#토성로", "#로컬식당"] },
+      { id: "food-1811956729", kind: "food", name: "감자유원지", address: "강원 강릉시 경강로2115번길 7 1,2,3층", lat: 37.7563715, lng: 128.8974101, link: "https://naver.me/x7ndMzi3", image: "https://ldb-phinf.pstatic.net/20220304_170/1646393419195XGWKf_PNG/%B0%A8%C0%DA%C0%AF%BF%F8%C1%F6_%B8%DE%C0%CE%C0%CC%B9%CC%C1%F6_%B4%EB%C1%F6_1.png", desc: "감자 메뉴를 테마로 한 한식 공간. 강릉다운 먹거리 코스로 어울립니다.", tags: ["#감자요리", "#한식", "#강릉다운"] },
+      { id: "food-1750811006", kind: "food", name: "스미야키센", address: "강원 강릉시 임영로141번길 4-6 스미야키센", lat: 37.7539298, lng: 128.8910729, link: "https://naver.me/5l7kn4NP", image: "https://ldb-phinf.pstatic.net/20241212_4/1733971138110kXxJm_JPEG/IMG_4141.jpeg", desc: "용강동 쪽 일식당. 중앙동 코스에서 조용한 식사 선택지로 넣기 좋습니다.", tags: ["#일식당", "#용강동", "#식사코스"] },
+      { id: "food-1519921736", kind: "food", name: "강릉가자", address: "강원 강릉시 문화의길7번길 8 104호 강릉가자", lat: 37.7545383, lng: 128.8943076, link: "https://naver.me/5bVsYKTX", image: "https://ldb-phinf.pstatic.net/20260409_243/1775723481730TOcM4_PNG/KakaoTalk_20260407_113420098_01.png", desc: "문화의길 근처 족발과 보쌈 후보. 여럿이 나눠 먹기 좋은 메뉴입니다.", tags: ["#족발보쌈", "#문화의길", "#나눠먹기"] },
+      { id: "food-1615572971", kind: "food", name: "샌마르", address: "강원 강릉시 문화의길 8 1층 샌마르피자", lat: 37.7547336, lng: 128.8948425, link: "https://naver.me/5EUZw5c6", image: "https://ldb-phinf.pstatic.net/20240422_153/1713719933844p4IMI_JPEG/6DB7A96D-E304-47E2-B6F7-C0D846B1891F.jpeg", desc: "문화의길 피자 맛집. 한식 사이에 캐주얼한 메뉴를 넣고 싶을 때 좋습니다.", tags: ["#피자", "#문화의길", "#캐주얼식사"] },
+      { id: "food-1786225013", kind: "food", name: "후쿠후쿠", address: "강원 강릉시 신대학길 32 2층", lat: 37.7537021, lng: 128.8964869, link: "https://naver.me/5tJGDn3p", image: "https://ldb-phinf.pstatic.net/20220414_248/1649930381967skplQ_JPEG/%C8%C4%C4%ED%C8%C4%C4%ED-2%BE%C8.jpg", desc: "신대학길의 덮밥 식당. 빠르고 깔끔한 한 끼 후보로 좋습니다.", tags: ["#덮밥", "#신대학길", "#혼밥가능"] },
+      { id: "food-15299914", kind: "food", name: "감자바우 장칼국수", address: "강원 강릉시 금성로35번길 4", lat: 37.753082, lng: 128.8970482, link: "https://naver.me/GWe2NSOi", image: "https://naverbooking-phinf.pstatic.net/20240731_284/1722414199895E92se_JPEG/%BF%C3_%BF%A9%B8%A7%C8%DE%B0%A1%B4%C2_%B8%D4%B0%ED_%C2%EF%B4%C2_%B0%D4_%C3%D6%B0%ED%B0%AD%B8%AA_%BF%C0%BC%CC%B4%D9%B8%E9_%B0%AD%B8%AA%C1%DF%BE%D3%BD%C3%C0%E5%C0%B8%B7%CE%C1%DF%BE%D3%BD%C3%C0%E5%C7%CF%B8%E9_%B0%A8%C0%DA%B9%D9%BF%EC%B7%CE40%B3%E2_%C0%FC%C5%EB_%BF%CB%BD%C9%C0%CC%BF%CD_%C0%E5%C4%AE%B1%B9%BC%F6%B8%A6_%B8%D4%C0%BB_%BC%F6_%C0%D6%B4%C2_%B0%F7%B0%A8%C0%DA%B9%D9%BF%EC%BF%A1.jpg", desc: "금성로 쪽 장칼국수 후보. 시장 산책 뒤 따뜻하게 마무리하기 좋습니다.", tags: ["#장칼국수", "#금성로", "#강릉대표메뉴"] }
     ];
 
     let currentFilter = "all";
     const defaultById = new Map(defaultPlaces.map(place => [place.id, place]));
     const places = loadPlaces();
-    var mapContainer = document.getElementById('map'),
-        mapOption = { 
-            center: new kakao.maps.LatLng(37.7549, 128.8972),
-            level: 4
-        };
-    var map = new kakao.maps.Map(mapContainer, mapOption);
-
-    var popupOverlay = new kakao.maps.CustomOverlay({
-      map: null,
-      clickable: true,
-      xAnchor: 0.5,
-      yAnchor: 1.1,
-      zIndex: 3
-    });
-
-    kakao.maps.event.addListener(map, 'click', function() {
-      popupOverlay.setMap(null);
-    });
-
+    const mapContainer = document.getElementById("map");
     const markerOverlays = [];
     const markers = new Map();
     const rail = document.querySelector("#placeRail");
+    let activeMapMode = "loading";
+    let map = null;
+    let popupOverlay = null;
+    let fallbackPopupEl = null;
 
     function decodeData(value) {
       const base64 = value.replace(/-/g, "+").replace(/_/g, "/");
@@ -717,6 +789,14 @@
       return place.link || `https://map.naver.com/p/search/${encodeURIComponent(place.name)}`;
     }
 
+    function closePopup() {
+      if (popupOverlay) popupOverlay.setMap(null);
+      if (fallbackPopupEl) {
+        fallbackPopupEl.hidden = true;
+        fallbackPopupEl.innerHTML = "";
+      }
+    }
+
     function popupFor(place) {
       return `
         <a class="place-popup" href="${escapeHtml(linkOf(place))}" target="_blank" rel="noreferrer" aria-label="${escapeHtml(place.name)} 네이버 지도 열기">
@@ -733,28 +813,165 @@
     }
 
     function openPopupForPlace(place) {
+      if (activeMapMode === "fallback") {
+        openFallbackPopup(place);
+        return;
+      }
+
+      closePopup();
       var popupContent = document.createElement('div');
       popupContent.innerHTML = popupFor(place);
-      
-      popupOverlay.setContent(popupContent);
+
       var position = new kakao.maps.LatLng(place.lat, place.lng);
+      var point = map.getProjection().containerPointFromCoords(position);
+      var shouldOpenBelow = point.y < 300;
+      var xAnchor = 0.5;
+
+      if (point.x < 170) xAnchor = 0.08;
+      if (point.x > mapContainer.clientWidth - 170) xAnchor = 0.92;
+
+      popupOverlay = new kakao.maps.CustomOverlay({
+        map: null,
+        clickable: true,
+        xAnchor: xAnchor,
+        yAnchor: shouldOpenBelow ? -0.12 : 1.08,
+        zIndex: 9
+      });
+      popupOverlay.setContent(popupContent);
       popupOverlay.setPosition(position);
       popupOverlay.setMap(map);
-      
-      map.panTo(position);
+    }
+
+    function placeBounds() {
+      return places.reduce((bounds, place) => ({
+        minLat: Math.min(bounds.minLat, place.lat),
+        maxLat: Math.max(bounds.maxLat, place.lat),
+        minLng: Math.min(bounds.minLng, place.lng),
+        maxLng: Math.max(bounds.maxLng, place.lng)
+      }), {
+        minLat: Infinity,
+        maxLat: -Infinity,
+        minLng: Infinity,
+        maxLng: -Infinity
+      });
+    }
+
+    function pointForPlace(place) {
+      const bounds = placeBounds();
+      const latRange = bounds.maxLat - bounds.minLat || 1;
+      const lngRange = bounds.maxLng - bounds.minLng || 1;
+      const x = 11 + ((place.lng - bounds.minLng) / lngRange) * 78;
+      const y = 12 + ((bounds.maxLat - place.lat) / latRange) * 72;
+
+      return {
+        x: Math.min(89, Math.max(11, x)),
+        y: Math.min(84, Math.max(12, y))
+      };
+    }
+
+    function initFallbackMap() {
+      activeMapMode = "fallback";
+      map = null;
+      popupOverlay = null;
+      markerOverlays.length = 0;
+      markers.clear();
+      mapContainer.innerHTML = `
+        <div class="fallback-map" aria-hidden="true"></div>
+        <p class="map-status">카카오맵 연결 전까지 간단 지도로 표시 중입니다.</p>
+        <div class="fallback-popup-wrap" hidden></div>
+      `;
+      fallbackPopupEl = mapContainer.querySelector(".fallback-popup-wrap");
+
+      if (!mapContainer.dataset.fallbackBound) {
+        mapContainer.addEventListener("click", event => {
+          if (!event.target.closest(".fallback-marker, .fallback-popup-wrap")) closePopup();
+        });
+        mapContainer.dataset.fallbackBound = "true";
+      }
+    }
+
+    function initKakaoMap() {
+      activeMapMode = "kakao";
+      fallbackPopupEl = null;
+      mapContainer.innerHTML = "";
+
+      const mapOption = {
+        center: new kakao.maps.LatLng(37.7549, 128.8972),
+        level: 4
+      };
+      map = new kakao.maps.Map(mapContainer, mapOption);
+
+      popupOverlay = new kakao.maps.CustomOverlay({
+        map: null,
+        clickable: true,
+        xAnchor: 0.5,
+        yAnchor: 1.1,
+        zIndex: 3
+      });
+
+      kakao.maps.event.addListener(map, "click", closePopup);
+    }
+
+    function bootMap() {
+      const useFallback = () => {
+        if (activeMapMode === "kakao") return;
+        initFallbackMap();
+        render();
+      };
+
+      if (!window.kakao || !kakao.maps || typeof kakao.maps.load !== "function") {
+        useFallback();
+        return;
+      }
+
+      const fallbackTimer = window.setTimeout(useFallback, 4500);
+      kakao.maps.load(() => {
+        window.clearTimeout(fallbackTimer);
+        try {
+          initKakaoMap();
+          render();
+          fitVisible();
+        } catch (error) {
+          useFallback();
+        }
+      });
     }
 
     function render() {
-      markerOverlays.forEach(overlay => overlay.setMap(null));
-      markerOverlays.length = 0;
+      if (activeMapMode === "loading") return;
+
+      if (activeMapMode === "kakao") {
+        markerOverlays.forEach(overlay => overlay.setMap(null));
+        markerOverlays.length = 0;
+      } else {
+        mapContainer.querySelectorAll(".fallback-marker").forEach(marker => marker.remove());
+      }
+
       markers.clear();
       rail.innerHTML = "";
-      popupOverlay.setMap(null);
+      closePopup();
 
       visiblePlaces().forEach((place, index) => {
-        var content = document.createElement('div');
+        var content = document.createElement(activeMapMode === "fallback" ? "button" : "div");
         content.className = `guide-marker ${place.kind === "food" ? "food" : ""}`;
         content.innerHTML = `<span>${index + 1}</span>`;
+
+        if (activeMapMode === "fallback") {
+          const point = pointForPlace(place);
+          content.type = "button";
+          content.classList.add("fallback-marker");
+          content.style.left = `${point.x}%`;
+          content.style.top = `${point.y}%`;
+          content.setAttribute("aria-label", `${place.name} 열기`);
+          content.addEventListener("click", function(e) {
+            e.stopPropagation();
+            openPopupForPlace(place);
+          });
+          mapContainer.appendChild(content);
+          markers.set(place.id, { element: content, place: place });
+          rail.appendChild(miniCard(place, index));
+          return;
+        }
 
         var position = new kakao.maps.LatLng(place.lat, place.lng);
         var customOverlay = new kakao.maps.CustomOverlay({
@@ -763,7 +980,7 @@
             xAnchor: 0.5,
             yAnchor: 1.0
         });
-        
+
         customOverlay.setMap(map);
         markerOverlays.push(customOverlay);
         markers.set(place.id, { overlay: customOverlay, place: place });
@@ -782,6 +999,19 @@
       });
     }
 
+    function openFallbackPopup(place) {
+      if (!fallbackPopupEl) return;
+      const point = pointForPlace(place);
+      const left = Math.min(86, Math.max(14, point.x));
+      const top = Math.min(82, Math.max(18, point.y));
+
+      fallbackPopupEl.innerHTML = popupFor(place);
+      fallbackPopupEl.style.left = `${left}%`;
+      fallbackPopupEl.style.top = `${top}%`;
+      fallbackPopupEl.classList.toggle("below", point.y < 42);
+      fallbackPopupEl.hidden = false;
+    }
+
     function miniCard(place, index) {
       const card = document.createElement("button");
       card.className = "mini-card";
@@ -794,13 +1024,17 @@
         </span>
       `;
       card.addEventListener("click", () => {
-        map.setLevel(3, { animate: true });
+        if (map) {
+          map.setLevel(3, { animate: true });
+          map.setCenter(new kakao.maps.LatLng(place.lat, place.lng));
+        }
         openPopupForPlace(place);
       });
       return card;
     }
 
     function fitVisible() {
+      if (activeMapMode !== "kakao") return;
       if (markerOverlays.length === 0) return;
       var bounds = new kakao.maps.LatLngBounds();
       markerOverlays.forEach(overlay => {
@@ -821,8 +1055,7 @@
 
     document.querySelector("#fitAll").addEventListener("click", fitVisible);
 
-    render();
-    fitVisible();
+    window.addEventListener("load", bootMap);
   </script>
 </body>
 </html>
